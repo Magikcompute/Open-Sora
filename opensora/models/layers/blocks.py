@@ -100,6 +100,9 @@ class PatchEmbed3D(nn.Module):
 
         self.in_chans = in_chans
         self.embed_dim = embed_dim
+        print('patchemb, patch_size', patch_size)
+        print('patchemb, in_chans', in_chans)
+        print('patchemb, embed_dim', embed_dim)
 
         self.proj = nn.Conv3d(in_chans, embed_dim, kernel_size=patch_size, stride=patch_size)
         if norm_layer is not None:

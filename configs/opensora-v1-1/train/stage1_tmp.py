@@ -9,11 +9,12 @@ dataset = dict(
 )
 # IMG: 1024 (20%) 512 (30%) 256 (50%) drop (50%)
 bucket_config = {  # 1s/it
-    "144p": {1: (0.5, 48), 16: (1.0, 6), 32: (1.0, 3), 96: (1.0, 1)},
-    "256": {1: (0.5, 24), 16: (0.5, 3), 48: (0.5, 1), 64: (0.0, None)},
-    "240p": {16: (0.3, 2), 32: (0.3, 1), 64: (0.0, None)},
-    "512": {1: (0.4, 12)},
-    "1024": {1: (0.3, 3)},
+    # "144p": {6: (0.5, 16)},
+    # "144p": {1: (0.5, 6)},
+    # "144p": {24: (0.5, 1)},
+    # "360p": {4: (0.3, 1),},
+    # "512": {1: (0.4, 12)},
+    # "1024": {1: (0.3, 3)},
 }
 mask_ratios = {
     "mask_no": 0.75,
@@ -28,8 +29,8 @@ mask_ratios = {
 }
 
 # Define acceleration
-num_workers = 8
-num_bucket_build_workers = 16
+num_workers = 1
+num_bucket_build_workers = 2
 dtype = "bf16"
 grad_checkpoint = False
 plugin = "zero2"
@@ -37,9 +38,10 @@ sp_size = 1
 
 # Define model
 model = dict(
+    # type="STDiT2-S1-2",
     type="STDiT2-XL/2",
-    from_pretrained=None,
-    input_sq_size=512,  # pretrained model is trained on 512x512
+    # from_pretrained=None,
+    input_sq_size=32,  # pretrained model is trained on 512x512
     qk_norm=True,
     enable_flashattn=True,
     enable_layernorm_kernel=True,
@@ -64,7 +66,7 @@ scheduler = dict(
 
 # Others
 seed = 42
-outputs = "outputs"
+outputs = "outputs/stage1_tmp"
 wandb = False
 
 epochs = 1000

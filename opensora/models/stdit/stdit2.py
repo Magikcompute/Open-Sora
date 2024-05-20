@@ -113,6 +113,7 @@ class STDiT2Block(nn.Module):
 
         # spatial branch
         x_s = rearrange(x_m, "B (T S) C -> (B T) S C", T=T, S=S)
+        print('before spatial atten, x_s', x_s.shape)
         x_s = self.attn(x_s)
         x_s = rearrange(x_s, "(B T) S C -> B (T S) C", T=T, S=S)
         if x_mask is not None:
@@ -131,6 +132,8 @@ class STDiT2Block(nn.Module):
 
         # temporal branch
         x_t = rearrange(x_m, "B (T S) C -> (B S) T C", T=T, S=S)
+        print('before temporal atten, x_t', x_t.shape)
+        asd
         x_t = self.attn_temp(x_t)
         x_t = rearrange(x_t, "(B S) T C -> B (T S) C", T=T, S=S)
         if x_mask is not None:
@@ -312,6 +315,10 @@ class STDiT2(PreTrainedModel):
         Returns:
             x (torch.Tensor): output latent representation; of shape [B, C, T, H, W]
         """
+        print('x in stdit', x.shape)
+        print('timestep', timestep.shape, timestep)
+        print('y', y.shape)
+        print('mask', mask.shape)
         B = x.shape[0]
         dtype = self.x_embedder.proj.weight.dtype
         x = x.to(dtype)
@@ -339,6 +346,9 @@ class STDiT2(PreTrainedModel):
         _, _, Tx, Hx, Wx = x.size()
         T, H, W = self.get_dynamic_size(x)
         S = H * W
+        print('H * W', H, W)
+        print('S', S)
+        print('T', T)
         scale = rs / self.input_sq_size
         base_size = round(S**0.5)
         pos_emb = self.pos_embed(x, H, W, scale=scale, base_size=base_size)
@@ -348,6 +358,7 @@ class STDiT2(PreTrainedModel):
         x = rearrange(x, "B (T S) C -> B T S C", T=T, S=S)
         x = x + pos_emb
         x = rearrange(x, "B T S C -> B (T S) C")
+        print('x after embedder in stdit', x.shape)
 
         # prepare adaIN
         t = self.t_embedder(timestep, dtype=x.dtype)  # [B, C]
@@ -525,6 +536,100 @@ def STDiT2_XL_2(from_pretrained=None, **kwargs):
             hidden_size=1152,
             patch_size=(1, 2, 2),
             num_heads=16, **kwargs
+        )
+        model = STDiT2(config)
+    return model
+
+@MODELS.register_module("STDiT2-S")
+def STDiT2_S(from_pretrained=None, **kwargs):
+    if from_pretrained is not None:
+        asd
+    else:
+        # create a new model
+        config = STDiT2Config(
+                depth=8,
+                hidden_size=144,
+                patch_size=(1, 2, 2),
+            num_heads=2, **kwargs
+        )
+        model = STDiT2(config)
+    return model
+
+
+@MODELS.register_module("STDiT2-S1")
+def STDiT2_S1(from_pretrained=None, **kwargs):
+    if from_pretrained is not None:
+        asd
+    else:
+        # create a new model
+        config = STDiT2Config(
+                depth=16,
+                hidden_size=144,
+                patch_size=(1, 2, 2),
+            num_heads=2, **kwargs
+        )
+        model = STDiT2(config)
+    return model
+
+
+@MODELS.register_module("STDiT2-S2")
+def STDiT2_S2(from_pretrained=None, **kwargs):
+    if from_pretrained is not None:
+        asd
+    else:
+        # create a new model
+        config = STDiT2Config(
+                depth=32,
+                hidden_size=144,
+                patch_size=(1, 2, 2),
+            num_heads=2, **kwargs
+        )
+        model = STDiT2(config)
+    return model
+
+
+@MODELS.register_module("STDiT2-S1-1")
+def STDiT2_S1_1(from_pretrained=None, **kwargs):
+    if from_pretrained is not None:
+        asd
+    else:
+        # create a new model
+        config = STDiT2Config(
+                depth=16,
+                hidden_size=288,
+                patch_size=(1, 2, 2),
+            num_heads=4, **kwargs
+        )
+        model = STDiT2(config)
+    return model
+
+
+@MODELS.register_module("STDiT2-S1-2")
+def STDiT2_S1_2(from_pretrained=None, **kwargs):
+    if from_pretrained is not None:
+        asd
+    else:
+        # create a new model
+        config = STDiT2Config(
+                depth=16,
+                hidden_size=288*2,
+                patch_size=(1, 2, 2),
+            num_heads=4*2, **kwargs
+        )
+        model = STDiT2(config)
+    return model
+
+@MODELS.register_module("STDiT2-S1-3")
+def STDiT2_S1_3(from_pretrained=None, **kwargs):
+    if from_pretrained is not None:
+        asd
+    else:
+        # create a new model
+        config = STDiT2Config(
+                depth=16,
+                hidden_size=288*4,
+                patch_size=(1, 2, 2),
+            num_heads=4*4, **kwargs
         )
         model = STDiT2(config)
     return model

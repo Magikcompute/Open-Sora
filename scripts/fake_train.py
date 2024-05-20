@@ -31,15 +31,24 @@ from opensora.utils.config_utils import (
 )
 from opensora.utils.misc import all_reduce_mean, format_numel_str, get_model_numel, requires_grad, to_torch_dtype
 from opensora.utils.train_utils import MaskGenerator, update_ema
-
+import time
 
 def main():
     # ======================================================
     # 1. args & cfg
     # ======================================================
     cfg = parse_configs(training=True)
+
+    # tmp ussage
+    with open('tmp_cfg.txt', 'r') as f:
+        line = f.readlines()[0][:-1]
+    local_res, local_frames, local_batch = line.split(' ')
+    local_bucket_config = {local_res: {int(local_frames): (0.5, int(local_batch))}}
+    cfg.bucket_config = local_bucket_config
+
     exp_name, exp_dir = create_experiment_workspace(cfg)
     save_training_config(cfg._cfg_dict, exp_dir)
+    only_dit = cfg.only_dit
 
     # ======================================================
     # 2. runtime variables & colossalai launch
@@ -126,17 +135,26 @@ def main():
     # 4. build model
     # ======================================================
     # 4.1. build model
-    text_encoder = build_module(cfg.text_encoder, MODELS, device=device)
-    vae = build_module(cfg.vae, MODELS)
     input_size = (dataset.num_frames, *dataset.image_size)
-    latent_size = vae.get_latent_size(input_size)
+    if not only_dit:
+        text_encoder = build_module(cfg.text_encoder, MODELS, device=device)
+        vae = build_module(cfg.vae, MODELS)
+        text_encoder_output_dim = text_encoder.output_dim
+        text_encoder_model_max_length = text_encoder.model_max_length
+        vae_out_channels = vae.out_channels
+        latent_size = vae.get_latent_size(input_size)
+    else:
+        text_encoder_output_dim = 4096
+        text_encoder_model_max_length = 200
+        vae_out_channels = 4
+        latent_size = [None, None, None]
     model = build_module(
         cfg.model,
         MODELS,
         input_size=latent_size,
-        in_channels=vae.out_channels,
-        caption_channels=text_encoder.output_dim,
-        model_max_length=text_encoder.model_max_length
+        in_channels=vae_out_channels,
+        caption_channels=text_encoder_output_dim,
+        model_max_length=text_encoder_model_max_length
     )
     model_numel, model_numel_trainable = get_model_numel(model)
     logger.info(
@@ -149,7 +167,8 @@ def main():
     ema_shape_dict = record_model_param_shape(ema)
 
     # 4.3. move to device
-    vae = vae.to(device, dtype)
+    if not only_dit:
+        vae = vae.to(device, dtype)
     model = model.to(device, dtype)
 
     # 4.4. build scheduler
@@ -236,12 +255,22 @@ def main():
                 print('x', x.shape)
                 y = batch.pop("text")
                 # Visual and text encoding
-                with torch.no_grad():
-                    # Prepare visual inputs
-                    x = vae.encode(x)  # [B, C, T, H/P, W/P]
-                    # Prepare text inputs
-                    model_args = text_encoder.encode(y)
 
+                if only_dit:
+                    tmp_dict = torch.load(f'tmp_dict{dist.get_rank()}.pkl')
+                    x = tmp_dict['x']
+                    model_args = tmp_dict['model_args']
+                else:
+                    with torch.no_grad():
+                        # Prepare visual inputs
+                        x = vae.encode(x)  # [B, C, T, H/P, W/P]
+                        print('x after vae', x.shape)
+                        # Prepare text inputs
+                        model_args = text_encoder.encode(y)
+                        tmp_dict = {'x':x, 'model_args':model_args}
+                        torch.save(tmp_dict, f'tmp_dict{dist.get_rank()}.pkl')
+                        
+                
                 # Mask
                 if cfg.mask_ratios is not None:
                     mask = mask_generator.get_masks(x)
@@ -312,6 +341,9 @@ def main():
                     logger.info(
                         f"Saved checkpoint at epoch {epoch} step {step + 1} global_step {global_step + 1} to {exp_dir}"
                     )
+                
+                if not only_dit:
+                    asd
 
         # the continue epochs are not resumed, so we need to reset the sampler start index and start step
         if cfg.dataset.type == "VideoTextDataset":

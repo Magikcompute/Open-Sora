@@ -61,7 +61,6 @@ class VariableVideoBatchSampler(DistributedSampler):
             seed=self.seed + self.epoch,
             num_bucket=self.bucket.num_bucket,
         )
-
         # group by bucket
         # each data sample is put into a bucket with a similar image/video size
         for i in range(len(self.dataset)):

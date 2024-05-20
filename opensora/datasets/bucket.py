@@ -26,6 +26,7 @@ def find_closet_smaller_bucket(t, t_dict, frame_interval):
     return None
 
 
+GLOBAL_COUNTER = {'a':0,'b':0,'c':0,'d':0,'e':0,'f':0,'g':0,'h':0}
 class Bucket:
     def __init__(self, bucket_config):
         for key in bucket_config:
@@ -70,12 +71,15 @@ class Bucket:
         print(f"Number of buckets: {num_bucket}")
 
     def get_bucket_id(self, T, H, W, frame_interval=1, seed=None):
+        # T: num of frames
+        # 
         resolution = H * W
         approx = 0.8
 
         fail = True
         for hw_id, t_criteria in self.bucket_probs.items():
             if resolution < self.hw_criteria[hw_id] * approx:
+                # GLOBAL_COUNTER['a'] += 1
                 continue
 
             # if sample is an image
@@ -85,8 +89,10 @@ class Bucket:
                     if rng.random() < t_criteria[1]:
                         fail = False
                         t_id = 1
+                        # GLOBAL_COUNTER['b'] += 1
                         break
                 else:
+                    # GLOBAL_COUNTER['c'] += 1
                     continue
 
             # otherwise, find suitable t_id for video
@@ -94,16 +100,20 @@ class Bucket:
             for t_id, prob in t_criteria.items():
                 if T > t_id * frame_interval and t_id != 1:
                     t_fail = False
+                    # GLOBAL_COUNTER['d'] += 1
                     break
             if t_fail:
+                # GLOBAL_COUNTER['e'] += 1
                 continue
 
             # leave the loop if prob is high enough
             rng = np.random.default_rng(seed + self.bucket_id[hw_id][t_id])
             if prob == 1 or rng.random() < prob:
                 fail = False
+                # GLOBAL_COUNTER['f'] += 1
                 break
         if fail:
+            # GLOBAL_COUNTER['g'] += 1
             return None
 
         # get aspect ratio id

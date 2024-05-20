@@ -186,3 +186,7 @@ wandb/
 node_modules/
 package-lock.json
 package.json
+
+# my ignore
+tmp*
+pretrained_models
